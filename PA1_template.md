@@ -1,12 +1,14 @@
 # Reproducible Research: Peer Assessment 1
 
-```{r }
+
+```r
 library(ggplot2)
 ```
 
 ## Loading and preprocessing the data
 
-```{r}
+
+```r
 filePath <- paste0(getwd(),"/activity.zip")
 
 datset <- read.csv(unz(filePath,"activity.csv"))
@@ -23,8 +25,8 @@ datset <- read.csv(unz(filePath,"activity.csv"))
 
 
 ### 1.
-```{r fig.width=15}
 
+```r
 totalsum <- with(datset,aggregate(steps,by=list(date),FUN = sum, na.rm=FALSE))
 colnames(totalsum) <- c("date","steps")
 
@@ -42,18 +44,19 @@ plot <- ggplot(data=totalsum,aes(x=date, y=steps)) +
 suppressWarnings(print(plot))
 ```
 
+![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-3.png) 
+
 
 ### 2.
-```{r}
 
+```r
 mean <- mean(totalsum$steps,na.rm=TRUE)
 median <-median(totalsum$steps,na.rm=TRUE)
-
 ```
 
-The mean for total number of steps taken per day is `r mean` .
+The mean for total number of steps taken per day is 1.0766 &times; 10<sup>4</sup> .
 
-The median for total number of steps taken per day is `r median` .
+The median for total number of steps taken per day is 10765 .
 ## What is the average daily activity pattern?
 
 1. Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
@@ -62,7 +65,8 @@ The median for total number of steps taken per day is `r median` .
 
 
 ### 1.
-```{r}
+
+```r
 meanInt <- with(datset,aggregate(steps,by=list(interval),FUN= mean,na.rm=TRUE))
 colnames(meanInt) <- c("interval","steps")
 plot <- ggplot(data=meanInt,aes(x=interval,y=steps)) + 
@@ -78,10 +82,18 @@ plot <- ggplot(data=meanInt,aes(x=interval,y=steps)) +
 print(plot)     
 ```
 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-5.png) 
+
 ### 2.
-```{r}
+
+```r
 maximus <- meanInt[which(meanInt$steps == max(meanInt$steps)),] 
 maximus
+```
+
+```
+##     interval steps
+## 104      835 206.2
 ```
 ## Imputing missing values
 
@@ -98,10 +110,16 @@ Do these values differ from the estimates from the first part of the assignment?
 What is the impact of imputing missing data on the estimates of the total daily number of steps?
 
 ### 1.
-```{r}
+
+```r
 totalNA <- table(complete.cases(datset))
 names(totalNA) <- c("NArows","nonNArows")
 totalNA
+```
+
+```
+##    NArows nonNArows 
+##      2304     15264
 ```
 ### 2.
 
@@ -113,7 +131,8 @@ totalNA
 
 
 ### 3.
-```{r}
+
+```r
 datset2 <- datset
 tempset <- datset2 
 ## Change date format to "YYYY-DD" in temporary data set.
@@ -145,10 +164,10 @@ for (i in nadates) {
         
         
         }
-
 ```
 ### 4.
-```{r fig.width=15}
+
+```r
 totalsum <- with(datset2,aggregate(steps,by=list(date),FUN = sum, na.rm=FALSE))
 colnames(totalsum) <- c("date","steps")
 
@@ -163,14 +182,25 @@ plot <- ggplot(data=totalsum,aes(x=date, y=steps)) +
         theme(plot.title=element_text(size = 20,face="bold"))
 
 print(plot)
+```
 
+![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-9.png) 
+
+```r
 mean <- mean(totalsum$steps,na.rm=TRUE)
 median <-median(totalsum$steps,na.rm=TRUE)
 
 
 mean <- cbind(mean,median)
 kable(mean,format="markdown")
+```
 
+```
+## 
+## 
+## |  mean| median|
+## |-----:|------:|
+## | 10386|  10600|
 ```
 
 **Yes, the mean/median calculations, for total number of steps taken per day, differ from the estimates from the first part of the assignment. This may be in part because of the inclusion/filling strategy used on NA values.**
@@ -189,15 +219,15 @@ month period**
 2. Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
 
 ### 1.
-```{r}
 
+```r
 datset2$weekdays <- as.factor(ifelse(weekdays(as.Date(datset2$date)) 
                                      %in% c("Saturday","Sunday"),"Weekend","Weekday"))
-
 ```
 
 ### 2.
-```{r }
+
+```r
 mean <- with(datset2,aggregate(steps,by=list(interval,weekdays),FUN = mean, na.rm=FALSE))
 colnames(mean) <- c("interval","weekdays","steps")
 
@@ -213,7 +243,6 @@ plot <-ggplot(data=mean, aes(x =interval,y =steps)) +
         ggtitle("The average number of steps by 5-minute intervals during weekdays/weekends.") +
         theme(plot.title=element_text(size = 12,face="bold"))
 print(plot)              
-
-
-
 ```
+
+![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-11.png) 
