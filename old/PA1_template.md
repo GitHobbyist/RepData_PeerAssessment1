@@ -27,10 +27,21 @@ datset <- read.csv(unz(filePath,"activity.csv"))
 ### 1.
 
 ```r
-totalDaySteps <- aggregate(steps ~ date,data = datset, FUN =sum, na.rm=FALSE)
+totalsum <- with(datset,aggregate(steps,by=list(date),FUN = sum, na.rm=FALSE))
+colnames(totalsum) <- c("date","steps")
 
-hist(totalDaySteps$steps, col ="green", xlab="Steps",ylab= "Frequency",
-     main="Total Number Of Steps Taken Each Day")
+plot <- ggplot(data=totalsum,aes(x=date, y=steps)) +
+        geom_histogram(stat="identity",fill="darkblue") +  
+        scale_y_continuous(breaks = seq(0,25000,2000)) +   
+        theme(axis.text.x = element_text(size= 8.5,angle = 45, 
+                                         hjust = 1,colour="darkred",face="bold")) +
+        theme(axis.text.y = element_text(size= 8.5, 
+                                         colour="darkred",face="bold")) +
+        ggtitle("The total number of steps taken each day.") +
+        theme(plot.title=element_text(size = 20,face="bold"))
+
+
+suppressWarnings(print(plot))
 ```
 
 ![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-3.png) 
@@ -39,14 +50,13 @@ hist(totalDaySteps$steps, col ="green", xlab="Steps",ylab= "Frequency",
 ### 2.
 
 ```r
-myMean <- mean(totalDaySteps$steps,na.rm=TRUE)
-myMedian <-median(totalDaySteps$steps,na.rm=TRUE)
+mean <- mean(totalsum$steps,na.rm=TRUE)
+median <-median(totalsum$steps,na.rm=TRUE)
 ```
 
 The mean for total number of steps taken per day is 1.0766 &times; 10<sup>4</sup> .
 
 The median for total number of steps taken per day is 10765 .
-
 ## What is the average daily activity pattern?
 
 1. Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
@@ -57,20 +67,19 @@ The median for total number of steps taken per day is 10765 .
 ### 1.
 
 ```r
-avgIntervalSteps <- aggregate(steps ~ interval, data= datset, FUN=mean, na.rm=TRUE)
-
-
-plot <- ggplot(data=avgIntervalSteps,aes(x=interval,y=steps)) + 
+meanInt <- with(datset,aggregate(steps,by=list(interval),FUN= mean,na.rm=TRUE))
+colnames(meanInt) <- c("interval","steps")
+plot <- ggplot(data=meanInt,aes(x=interval,y=steps)) + 
         geom_line(col="red",lwd=0.9) +
         scale_x_continuous(breaks = seq(0,2355,150)) + 
-        scale_y_continuous(breaks = seq(0,206,50)) +
+        scale_y_continuous(breaks = seq(0,205,50)) +
         theme(axis.text.x=element_text(size=10,colour="blue",
                                        face="bold")) +
         theme(axis.text.y=element_text(colour="blue",
                                        face="bold")) +
-        ggtitle("The Average Number Of Steps By 5 Minute Intervals Across All Days .") +
+        ggtitle("The average number of steps by 5-minute intervals across all the days .") +
         theme(plot.title=element_text(size = 12,face="bold"))
-print(plot)   
+print(plot)     
 ```
 
 ![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-5.png) 
@@ -78,7 +87,7 @@ print(plot)
 ### 2.
 
 ```r
-maximus <- avgIntervalSteps[which(avgIntervalSteps$steps == max(avgIntervalSteps$steps)),] 
+maximus <- meanInt[which(meanInt$steps == max(meanInt$steps)),] 
 maximus
 ```
 
@@ -86,8 +95,6 @@ maximus
 ##     interval steps
 ## 104      835 206.2
 ```
-The 835th interval contains the maximum number of steps. 
-
 ## Imputing missing values
 
 **NOTE: There are a number of days/intervals where there are missing values (coded as NA). The presence of missing days may introduce bias into some calculations or summaries of the data.**
@@ -114,89 +121,93 @@ totalNA
 ##    NArows nonNArows 
 ##      2304     15264
 ```
-The total number of rows with NAs is 2304.
-
 ### 2.
 
 **The strategy devised for filling in all of the missing values in the dataset consists on identifying the dates (YYYY-MM-DD) when/where steps data is Not Available (Assuming steps as the only column with missing values coded as NA).**
 
-**Dates are reformatted to YYYY-DD in order to compare and fill in its step values with the value from same day(s) (%d) but from different month(s) during that same year that my not have missing values.** 
+**Dates with NA are reformatted to YYYY-DD in order to verify, compare and fill steps values based on the mean calculated from same days (%d) during the same year with no missing values.** 
 
-**Example, if date "2012-11-30" contains missing value, then it may be filled with the steps value from the same day(s) but 
-from a different month(s) of the year, in this case it can be filled in from the "2012-10-30" day. An identified day with 
-NA can also be filled in by calculating the mean from more than one month that contains the same day. If all same days 
-(for all months) contain NA or no monthly equivalent day(s) are found, steps is assigned zero. Below stategy is implemented
-and dataset with the missing data filled in (datset2) is created.**
+**Example, if date "2012-11-30" contains missing value, then it may be filled with the steps mean calculated from same day(s) from different months of the year, in this case filled from "2012-10-30" mean calculations. If all same days (for all months) contain NA or no monthly equivalent day(s) are found, steps is assigned zero.**   
 
 
 ### 3.
 
 ```r
-datset2 <- datset 
+datset2 <- datset
 tempset <- datset2 
 ## Change date format to "YYYY-DD" in temporary data set.
 tempset$date <- format(as.Date(tempset$date),"%Y-%d")
 ## ID rows with missing values in temporary data set.
-naRow <- !complete.cases(tempset)
-## ID dates that contain missing values in temporary data set.
-naDates <- unique(tempset[naRow,"date"])
+narow <- !complete.cases(tempset)
+## ID unique dates with missing values in temporary data set.
+nadates <- unique(tempset[narow,"date"])
 
-for (i in naDates) {
-        ## ID indexes of all rows for a specific date(s) of format "YYYY-DD" in temporary data set.          
+for (i in nadates) {
+        ## ID indexes of all rows for a specific date(s) of format "YYYY-DD".           
         idx <- grep(i,tempset[,2])
         
-        ## If all same days (but from different months) contain NA or no monthly 
-        ## equivalent day(s) are found, steps value is assigned zero.
+        ## If all same days (for all months) contain NA or no monthly 
+        ## equivalent day(s) are found, ##steps is assigned zero.
         if (all(is.na(tempset[idx,1]))) {
                 
                 
-                datset2[idx,1] <- 0
+                 datset2[idx,1] <- 0
                 
-                } else {
+        } else {
                         
-                        ## Else calculate steps value from mean of other months (but same day) and assign it to steps columns with NA.       
-                        myMean <- mean(as.vector(tempset[idx,1]),na.rm=TRUE)
-                        idx2 <- as.integer(which(is.na(tempset[idx,1]), arr.ind=TRUE))
-                        datset2[idx[idx2],1] <- myMean
+                ## Else calculate mean from other months (but same day) and assign it to steps columns with NA.       
+                  mean <- mean(as.vector(tempset[idx,1]),na.rm=TRUE)
+                  idx2 <- as.integer(which(is.na(tempset[idx,1]), arr.ind=TRUE))
+                  datset2[idx[idx2],1] <- mean
                         
-                        }
+                }
         
         
         }
 ```
-
 ### 4.
 
 ```r
-totalDaySteps <- aggregate(steps ~ date,data = datset2, FUN =sum, na.rm=FALSE)
+totalsum <- with(datset2,aggregate(steps,by=list(date),FUN = sum, na.rm=FALSE))
+colnames(totalsum) <- c("date","steps")
 
-hist(totalDaySteps$steps, col ="blue", xlab="Steps",ylab= "Frequency",
-     main="Total Number Of Steps Taken Each Day (Filled)")
+plot <- ggplot(data=totalsum,aes(x=date, y=steps)) +
+        geom_histogram(stat="identity",fill="darkblue") +  
+        scale_y_continuous(breaks = seq(0,25000,2000)) + 
+        theme(axis.text.x = element_text(size= 8.5,angle = 45, 
+                                         hjust = 1,colour="darkred",face="bold")) +
+        theme(axis.text.y = element_text(size= 8.5, 
+                                         colour="darkred",face="bold")) +
+        ggtitle("The total number of steps taken each day.") +
+        theme(plot.title=element_text(size = 20,face="bold"))
+
+print(plot)
 ```
 
 ![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-9.png) 
 
 ```r
-myMean <- mean(totalDaySteps$steps,na.rm=TRUE)
-myMedian <-median(totalDaySteps$steps,na.rm=TRUE)
+mean <- mean(totalsum$steps,na.rm=TRUE)
+median <-median(totalsum$steps,na.rm=TRUE)
 
 
-meTbl <- cbind(myMean,myMedian)
-kable(meTbl,format="markdown")
+mean <- cbind(mean,median)
+kable(mean,format="markdown")
 ```
 
 ```
 ## 
 ## 
-## | myMean| myMedian|
-## |------:|--------:|
-## |  10386|    10600|
+## |  mean| median|
+## |-----:|------:|
+## | 10386|  10600|
 ```
-**Yes, these last mean/median calculations, for total number of steps taken per day, differ from the estimates from the 1st part of the assignment. This may be in part because of the inclusion/filling strategy used on NA values. Even the histograms differ,
-with bars of last histogram having increased in frequency.**
 
-**In this case, the impact of imputing missing values seems minimal, but is more apparent on the mean than the median. In this part by including/filling in the NA values with estimates the mean/median values decreased, but this is more apparent on the
-mean value. We were still able to include step values for all dates under the two month period.** 
+**Yes, the mean/median calculations, for total number of steps taken per day, differ from the estimates from the first part of the assignment. This may be in part because of the inclusion/filling strategy used on NA values.**
+
+**In this case, the impact of imputing missing values seems minimal. In the first part of the assignment we ignored
+NA values (na.rm=T), if not the results would be compromised with NA outputs. In this part by including/filling in the NA values with estimates the mean/median values changed, but not dramatically and we were able to include all dates under the two
+month period** 
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
@@ -217,10 +228,10 @@ datset2$weekdays <- as.factor(ifelse(weekdays(as.Date(datset2$date))
 ### 2.
 
 ```r
-myMean <- with(datset2,aggregate(steps,by=list(interval,weekdays),FUN = mean, na.rm=FALSE))
-colnames(myMean) <- c("interval","weekdays","steps")
+mean <- with(datset2,aggregate(steps,by=list(interval,weekdays),FUN = mean, na.rm=FALSE))
+colnames(mean) <- c("interval","weekdays","steps")
 
-plot <-ggplot(data=myMean, aes(x =interval,y =steps)) +
+plot <-ggplot(data=mean, aes(x =interval,y =steps)) +
         geom_line(col="red",lwd=0.9) +
         facet_wrap( ~ weekdays, nrow=2,ncol=1) +
         scale_x_continuous(breaks = seq(0,2355,150)) + 
@@ -229,7 +240,7 @@ plot <-ggplot(data=myMean, aes(x =interval,y =steps)) +
                                        angle=45,face="bold")) +
         theme(axis.text.y=element_text(colour="blue",
                                        face="bold")) +
-        ggtitle("The Average Number Of Steps By 5-Minute Intervals During Weekdays/Weekends.") +
+        ggtitle("The average number of steps by 5-minute intervals during weekdays/weekends.") +
         theme(plot.title=element_text(size = 12,face="bold"))
 print(plot)              
 ```

@@ -57,7 +57,7 @@ The median for total number of steps taken per day is 10765 .
 ### 1.
 
 ```r
-avgIntervalSteps <- aggregate(steps ~ interval, data= datset, FUN=mean, na.rm=TRUE)
+  avgIntervalSteps <- aggregate(steps ~ interval, data= datset, FUN=mean, na.rm=TRUE)
 
 
 plot <- ggplot(data=avgIntervalSteps,aes(x=interval,y=steps)) + 
@@ -150,16 +150,16 @@ for (i in naDates) {
         if (all(is.na(tempset[idx,1]))) {
                 
                 
-                datset2[idx,1] <- 0
+                 datset2[idx,1] <- 0
                 
-                } else {
+        } else {
                         
-                        ## Else calculate steps value from mean of other months (but same day) and assign it to steps columns with NA.       
-                        myMean <- mean(as.vector(tempset[idx,1]),na.rm=TRUE)
-                        idx2 <- as.integer(which(is.na(tempset[idx,1]), arr.ind=TRUE))
-                        datset2[idx[idx2],1] <- myMean
+                ## Else calculate steps value from mean of other months (but same day) and assign it to steps columns with NA.       
+                  myMean <- mean(as.vector(tempset[idx,1]),na.rm=TRUE)
+                  idx2 <- as.integer(which(is.na(tempset[idx,1]), arr.ind=TRUE))
+                  datset2[idx[idx2],1] <- myMean
                         
-                        }
+                }
         
         
         }
